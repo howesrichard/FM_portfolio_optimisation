@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Two-Asset Efficient Frontier</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        label { display: block; margin: 8px 0; }
+        input[type="number"] { width: 80px; }
+    </style>
+</head>
+<body>
+    <h2>Effect of Correlation on the Two-Asset Efficient Frontier</h2>
+
+    <label>Asset 1 Return (r₁): <input type="number" id="r1" value="0.05" step="0.01" onchange="updateChart()"></label>
+    <label>Asset 1 Volatility (σ₁): <input type="number" id="sigma1" value="0.15" step="0.01" onchange="updateChart()"></label>
+    <label>Asset 2 Return (r₂): <input type="number" id="r2" value="0.2" step="0.01" onchange="updateChart()"></label>
+    <label>Asset 2 Volatility (σ₂): <input type="number" id="sigma2" value="0.2" step="0.01" onchange="updateChart()"></label>
+    <label>
+        Correlation (ρ): 
+        <input type="range" min="-1" max="1" step="0.1" value="0.5" id="rho" oninput="updateChart()">
+        <span id="rho_val">0.5</span>
+    </label>
+
+    <div id="plot" style="margin-top: 30px;"></div>
+
+    <script>
+        function portfolioPoints(r1, r2, sigma1, sigma2, rho) {
+            const weights = Array.from({length: 101}, (_, i) => i / 100);
+            const returns = [];
+            const vols = [];
+
+            for (let w of weights) {
+                const w1 = w;
+                const w2 = 1 - w;
+                const port_return = w1 * r1 + w2 * r2;
+                const port_vol = Math.sqrt(
+                    Math.pow(w1 * sigma1, 2) +
+                    Math.pow(w2 * sigma2, 2) +
+                    2 * w1 * w2 * sigma1 * sigma2 * rho
+                );
+                returns.push(port_return);
+                vols.push(port_vol);
+            }
+
+            return {returns, vols};
+        }
+
+        function updateChart() {
+            const r1 = parseFloat(document.getElementById("r1").value);
+            const sigma1 = parseFloat(document.getElementById("sigma1").value);
+            const r2 = parseFloat(document.getElementById("r2").value);
+            const sigma2 = parseFloat(document.getElementById("sigma2").value);
+            const rho = parseFloat(document.getElementById("rho").value);
+            document.getElementById("rho_val").innerText = rho.toFixed(1);
+
+            const {returns, vols} = portfolioPoints(r1, r2, sigma1, sigma2, rho);
+
+            const traceFrontier = {
+                x: vols,
+                y: returns,
+                mode: 'lines',
+                name: `ρ = ${rho.toFixed(1)}`,
+                line: { width: 3, color: '#1f77b4' }
+            };
+
+            const asset1 = {
+                x: [sigma1],
+                y: [r1],
+                mode: 'markers',
+                marker: { size: 12, color: 'red' },
+                name: 'Asset 1'
+            };
+
+            const asset2 = {
+                x: [sigma2],
+                y: [r2],
+                mode: 'markers',
+                marker: { size: 12, color: 'green' },
+                name: 'Asset 2'
+            };
+
+            Plotly.newPlot("plot", [traceFrontier, asset1, asset2], {
+                title: "Effect of Correlation on the Two-Asset Efficient Frontier",
+                xaxis: {
+                    title: "Portfolio Volatility (σ)",
+                    range: [0, 0.4]  // Static x-axis range
+                },
+                yaxis: {
+                    title: "Expected Return (r)",
+                    range: [0, 0.25]  // Static y-axis range
+                },
+                legend: { x: 0.8, y: 1 },
+                margin: { t: 60 },
+                responsive: true
+            });
+        }
+
+        // Initialize the chart on first load
+        updateChart();
+    </script>
+</body>
+</html>
